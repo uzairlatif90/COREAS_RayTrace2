@@ -19,19 +19,6 @@
 
 using namespace std;
 
-////Define vectors to store data from the file
-vector <vector <double>> nh_data;////n(h) refractive index profile of the atmosphere as a function of height
-vector <vector <double>> lognh_data;////log(n(h)-1) log of the refractive index profile of the atmosphere as a function of height subtracted by 1
-vector <vector <double>> h_data;////height data
-
-////Define Arrays for storing values of ATMLAY and a,b and c parameters taken from the Atmosphere.dat file
-double ATMLAY[5];
-double abc[5][3];
-
-////define dummy variables which will be filled in later after fitting
-double B_air=0;
-double C_air=0;
-
 namespace MultiRayAirIceRefraction{
   
 static constexpr double pi=4.0*atan(1.0); /**< Gives back value of Pi */
@@ -94,10 +81,6 @@ double *GetLayerHitPointPar(double n_layer1, double RxDepth,double TxDepth, doub
 
 ////This function flattens out 2d vectors into 1d vectors
 vector<double> flatten(const vector<vector<double>>& v);
-
-////This function is used to measure the amount of time the code takes
-typedef unsigned long long timestamp_t;
-static timestamp_t get_timestamp ();
 
 ////This is the main function which will make the RayTracing Table that will be used for interpolation by COREAS
 ////The arguments are:

@@ -1,5 +1,18 @@
 #include "MultiRayAirIceRefraction.h"
 
+////Define vectors to store data from the file
+vector <vector <double>> nh_data;////n(h) refractive index profile of the atmosphere as a function of height
+vector <vector <double>> lognh_data;////log(n(h)-1) log of the refractive index profile of the atmosphere as a function of height subtracted by 1
+vector <vector <double>> h_data;////height data
+
+////Define Arrays for storing values of ATMLAY and a,b and c parameters taken from the Atmosphere.dat file
+double ATMLAY[5];
+double abc[5][3];
+
+////define dummy variables which will be filled in later after fitting
+double B_air=0;
+double C_air=0;
+
 ////This Function reads in the values of ATMLAY and a,b and c parameters taken from the Atmosphere.dat file. The a,b and c values are mass overburden values and are not required in this code.
 int MultiRayAirIceRefraction::readATMpar(){
 
@@ -112,7 +125,7 @@ int MultiRayAirIceRefraction::readnhFromFile(){
 
 ////Get the value of the B parameter for the ice refractive index model
 double MultiRayAirIceRefraction::GetB_ice(double z){
-  double zabs=fabs(z);
+  //double zabs=fabs(z);
   double B=0;
 
   B=-0.43;
@@ -121,7 +134,7 @@ double MultiRayAirIceRefraction::GetB_ice(double z){
 
 ////Get the value of the C parameter for the ice refractive index model
 double MultiRayAirIceRefraction::GetC_ice(double z){
-  double zabs=fabs(z);
+  //double zabs=fabs(z);
   double C=0;
   
   C=0.0132;
@@ -130,13 +143,13 @@ double MultiRayAirIceRefraction::GetC_ice(double z){
 
 ////Get the value of refractive index model for a given depth in ice
 double MultiRayAirIceRefraction::Getnz_ice(double z){
-  z=fabs(z);
-  return MultiRayAirIceRefraction::A_ice+GetB_ice(z)*exp(-GetC_ice(z)*z);
+  double zabs=fabs(z);
+  return MultiRayAirIceRefraction::A_ice+GetB_ice(zabs)*exp(-GetC_ice(zabs)*zabs);
 }
 
 ////Get the value of the B parameter for the air refractive index model
 double MultiRayAirIceRefraction::GetB_air(double z){
-  double zabs=fabs(z);
+  //double zabs=fabs(z);
   double B=0;
   
   B=B_air;
@@ -145,7 +158,7 @@ double MultiRayAirIceRefraction::GetB_air(double z){
 
 ////Get the value of the C parameter for the air refractive index model
 double MultiRayAirIceRefraction::GetC_air(double z){
-  double zabs=fabs(z);
+  //double zabs=fabs(z);
   double C=0;
 
   C=C_air;
@@ -154,8 +167,8 @@ double MultiRayAirIceRefraction::GetC_air(double z){
 
 ////Get the value of refractive index model for a given depth in air
 double MultiRayAirIceRefraction::Getnz_air(double z){
-  z=fabs(z);
-  return MultiRayAirIceRefraction::A_air+GetB_air(z)*exp(-GetC_air(z)*z);
+  double zabs=fabs(z);
+  return MultiRayAirIceRefraction::A_air+GetB_air(zabs)*exp(-GetC_air(zabs)*zabs);
 }
 
 ////Use GSL minimiser which uses Brent's Method to find root for a given function
@@ -235,7 +248,7 @@ double MultiRayAirIceRefraction::ftimeD(double x,void *params){
   
   struct MultiRayAirIceRefraction::ftimeD_params *p= (struct MultiRayAirIceRefraction::ftimeD_params *) params;
   double A = p->a;
-  double B = p->b;
+  //double B = p->b;
   double C = p->c;
   double Speedc = p->speedc;
   double L = p->l;
@@ -262,13 +275,13 @@ double MultiRayAirIceRefraction::ftimeD(double x,void *params){
 double *MultiRayAirIceRefraction::GetLayerHitPointPar(double n_layer1, double RxDepth,double TxDepth, double IncidentAng, int AirOrIce){
   double *output=new double[3];
   
-  double x0=0;////Starting horizontal point of the ray. Always set at zero
+  //double x0=0;////Starting horizontal point of the ray. Always set at zero
   double x1=0;////Variable to store the horizontal distance that will be traveled by the ray
   
   double ReceiveAngle=0;////Angle from the vertical at which the target will recieve the ray
   double Lvalue=0;//// L parameter of the ray for that layer
   double RayTimeIn2ndLayer=0;////Time of propagation in 2ndLayer 
-  double AngleOfEntryIn2ndLayer=0;////Angle at which the ray enters the layer
+  //double AngleOfEntryIn2ndLayer=0;////Angle at which the ray enters the layer
 
   double SurfaceRayIncidentAngle=IncidentAng*(MultiRayAirIceRefraction::pi/180.0);////Angle at which the ray is incident on the second layer
   double RayAngleInside2ndLayer=0;////Use Snell's Law to find the angle of transmission in the 2ndlayer
@@ -379,16 +392,18 @@ vector<double> MultiRayAirIceRefraction::flatten(const vector<vector<double>>& v
     return result;
 }
 
-static MultiRayAirIceRefraction::timestamp_t MultiRayAirIceRefraction::get_timestamp (){
+////This function is used to measure the amount of time the code takes
+typedef unsigned long long timestamp_t;
+static timestamp_t get_timestamp (){
   struct timeval now;
   gettimeofday (&now, NULL);
-  return  now.tv_usec + (MultiRayAirIceRefraction::timestamp_t)now.tv_sec * 1000000;
+  return  now.tv_usec + (timestamp_t)now.tv_sec * 1000000;
 }
 
 int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double IceLayerHeight){
 
   ////For recording how much time the process took
-  MultiRayAirIceRefraction::timestamp_t t0 = get_timestamp();
+  timestamp_t t0 = get_timestamp();
   
   ////Print out the entry number, the Tx height, ice layer height, Tx height above the icelayer height, total horizontal distance on surface, total horizontal distance in ice, RayLaunchAngle at Tx, incident angle on ice and recievd angle in ice at the antenna inside this file 
   ofstream aout("TableValues.txt");
@@ -627,7 +642,7 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
   flattened_h_data.clear();
   flattened_nh_data.clear();
 
-  MultiRayAirIceRefraction::timestamp_t t1 = get_timestamp();
+  timestamp_t t1 = get_timestamp();
   
   double secs = (t1 - t0) / 1000000.0L;
   cout<<"total time taken by the script: "<<secs<<" s"<<endl;

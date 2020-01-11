@@ -1,4 +1,4 @@
-#include </home/uzairlatif/Documents/COREAS_RayTrace2/MultiRayAirIceRefraction.cc>
+#include "MultiRayAirIceRefraction.h"
 
 int main(int argc, char **argv){
   
@@ -27,7 +27,6 @@ int main(int argc, char **argv){
   double AntennaDepth=atof(argv[1]);//200;////Depth of antenna in the ice
   double IceLayerHeight=atof(argv[2]);//3000;////Height where the ice layer starts off
 
-  int output=MultiRayAirIceRefraction::MakeRayTracingTable(AntennaDepth,IceLayerHeight);
-  //MakeRayTracingTable(AntennaDepth,IceLayerHeight);
+  MultiRayAirIceRefraction::MakeRayTracingTable(AntennaDepth,IceLayerHeight);
   
 }
