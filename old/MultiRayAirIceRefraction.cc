@@ -631,7 +631,7 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
       
       //cout<<ifileentry<<" "<<TxHeight<<" "<<IceLayerHeight<<" "<<TxHeight-IceLayerHeight<<" "<<TotalHorizontalDistance<<" "<<TotalHorizontalDistanceInIce<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
       //aout<<ifileentry<<" "<<TxHeight<<" "<<IceLayerHeight<<" "<<TxHeight-IceLayerHeight<<" "<<TotalHorizontalDistance<<" "<<TotalHorizontalDistanceInIce<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
-      aout<<ifileentry<<" "<<TxHeight<<" "<<TotalHorizontalDistanceInAir + TotalHorizontalDistanceInIce<<" "<<TotalHorizontalDistanceInAir<<" "<<TotalHorizontalDistanceInIce<<" "<<(TimeInIce+TimeInAir)*MultiRayAirIceRefraction::spedc<<" "<<TimeInIce*MultiRayAirIceRefraction::spedc<<" "<<TimeInAir*MultiRayAirIceRefraction::spedc<<" "<<(TimeInIce+TimeInAir)*pow(10,9)<<" "<<TimeInIce*pow(10,9)<<" "<<TimeInAir*pow(10,9)<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
+      aout<<ifileentry<<" "<<TxHeight<<" "<<TotalHorizontalDistanceInAir + TotalHorizontalDistanceInIce<<" "<<TotalHorizontalDistanceInAir<<" "<<TotalHorizontalDistanceInIce<<" "<<(TimeInIce+TimeInAir)*MultiRayAirIceRefraction::spedc<<" "<<TimeInAir*MultiRayAirIceRefraction::spedc<<" "<<TimeInIce*MultiRayAirIceRefraction::spedc<<" "<<(TimeInIce+TimeInAir)*pow(10,9)<<" "<<TimeInAir*pow(10,9)<<" "<<TimeInIce*pow(10,9)<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
 
       delete[] GetHitPar;
       layerAs.clear();
