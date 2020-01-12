@@ -273,7 +273,8 @@ double MultiRayAirIceRefraction::ftimeD(double x,void *params){
 //// RxDepth is the final height or depth
 //// AirOrIce variable is used to determine whether we are working in air or ice as that sets the range for the GSL root finder.
 double *MultiRayAirIceRefraction::GetLayerHitPointPar(double n_layer1, double RxDepth,double TxDepth, double IncidentAng, int AirOrIce){
-  double *output=new double[3];
+
+  double *output=new double[4];
   
   //double x0=0;////Starting horizontal point of the ray. Always set at zero
   double x1=0;////Variable to store the horizontal distance that will be traveled by the ray
@@ -376,6 +377,7 @@ double *MultiRayAirIceRefraction::GetLayerHitPointPar(double n_layer1, double Rx
   output[0]=x1;
   output[1]=ReceiveAngle*(180/MultiRayAirIceRefraction::pi);
   output[2]=Lvalue;
+  output[3]=RayTimeIn2ndLayer;
   
   return output;
 }
@@ -423,7 +425,7 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
   gsl_spline_init(spline, flattened_h_data.data(), flattened_nh_data.data(), flattened_h_data.size());
 
   ////Define variables for the loop over Tx height and ray launch angle
-  double RayLaunchAngle=0;////Set zero for now. This variable defines the initial launch angle of the ray w.r.t to the vertical in the atmosphere. 0 is vertically down
+  double RayLaunchAngleInAir=0;////Set zero for now and 0 deg straight up. This variable defines the initial launch angle of the ray w.r.t to the vertical in the atmosphere. 0 deg is straight up
   double TxHeight=h_data[h_data.size()-1][h_data[h_data.size()-1].size()-1];////Maximum height available with the refractive index data
 
   ////Set the variables for the for loop that will loop over the launch angle values. All values are in degrees
@@ -443,7 +445,7 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
   for(int ihei=0;ihei<TotalHeightSteps;ihei++){
     TxHeight=LoopStartHeight-HeightStepSize*ihei;
     for(int iang=0;iang<TotalAngleSteps;iang++){
-      RayLaunchAngle=LoopStartAngle+AngleStepSize*iang;
+      RayLaunchAngleInAir=LoopStartAngle+AngleStepSize*iang;
       
       /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       ////Section for propogating the ray through the atmosphere
@@ -483,7 +485,8 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
       double StartHeight=0;
       double StopHeight=0;
       double StartAngle=0;
-      double TotalHorizontalDistance=0;
+      double TotalHorizontalDistanceInAir=0;
+      double TimeInAir=0;
       vector <double> layerAs,layerBs,layerCs,layerLs;////vector for storing the A,B,C and L values of each of the atmosphere layes as the ray passes through them
       
       double c0, c1;////variables to store the fit results from the GSL linear fitter for y=c0+c1*x. Here we are trying to fit the function: log(n(h)-1)=log(B)+C*h which basically comes from n(h)=A+B*exp(C*h)
@@ -523,9 +526,9 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
 	  StopHeight=ATMLAY[ilayer]/100;
 	}
 	
-	////If this is the first layer then set the initial launch angle of the ray through the layers
+	////If this is the first layer then set the initial launch angle of the ray through the layers. I calculate the final launch angle by doing 180-RayLaunchAngleInAir since my raytracer only works with 0 to 90 deg. Setting an angle of 95 deg w.r.t to the vertical where 0 is up means that my raytraces takes in an launch angle of 85.
 	if(ilayer==MaxLayers-SkipLayersAbove-1){
-	  StartAngle=180-RayLaunchAngle;
+	  StartAngle=180-RayLaunchAngleInAir;
 	}
 	//cout<<ilayer<<" Starting n(h)="<<Start_nh<<" ,A="<<A<<" ,B="<<B<<" ,C="<<C<<" StartingHeight="<<StartHeight<<" ,StoppingHeight="<<StopHeight<<" ,RayLaunchAngle"<<StartAngle<<endl;
 	
@@ -534,8 +537,9 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
 	//// The angle of reciept/incidence at the end or the starting angle for propogation through the next layer
 	//// The value of the L parameter for that layer
 	double* GetHitPar=GetLayerHitPointPar(Start_nh, StopHeight, StartHeight, StartAngle, 1);
-	TotalHorizontalDistance+=GetHitPar[0];
+	TotalHorizontalDistanceInAir+=GetHitPar[0];
 	StartAngle=GetHitPar[1];
+	TimeInAir+=GetHitPar[3];
 	
 	////Store in the values of A,B,C and L for tha layer
 	layerLs.push_back(GetHitPar[2]);
@@ -574,7 +578,7 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
       // ////Set the stopping height of the ray for propogation to be the height of the ice layer
       // StopHeight=IceLayerHeight;
       // ////Set the initial launch angle of the ray
-      // StartAngle=180-RayLaunchAngle;
+      // StartAngle=180-RayLaunchAngleInAir;
       // //cout<<ilayer<<" Starting n(h)="<<Start_nh<<" ,A="<<A<<" ,B="<<B<<" ,C="<<C<<" StartingHeight="<<StartHeight<<" ,StoppingHeight="<<StopHeight<<" ,RayLaunchAngle"<<StartAngle<<endl;
       
       // ////Get the hit parameters from the function. The output is:
@@ -618,14 +622,16 @@ int MultiRayAirIceRefraction::MakeRayTracingTable(double AntennaDepth, double Ic
       double *GetHitPar=GetLayerHitPointPar(Start_nh, AntennaDepth,StartDepth, StartAngle, 0);
       
       ////SLF here stands for Single Layer Fitting. These variables store the hit parameters
-      double TotalHorizontalDistanceinIce=GetHitPar[0];
-      double RecievdAngleinIce=GetHitPar[1];
+      double TotalHorizontalDistanceInIce=GetHitPar[0];
+      double RecievdAngleInIce=GetHitPar[1];
       double LvalueIce=GetHitPar[2];
+      double TimeInIce=GetHitPar[3];
       
-      //cout<<"Total horizontal distance travelled by the ray in ice is  "<<TotalHorizontalDistanceinIce<<endl;
+      //cout<<"Total horizontal distance travelled by the ray in ice is  "<<TotalHorizontalDistanceInIce<<endl;
       
-      //cout<<ifileentry<<" "<<TxHeight<<" "<<IceLayerHeight<<" "<<TxHeight-IceLayerHeight<<" "<<TotalHorizontalDistance<<" "<<TotalHorizontalDistanceinIce<<" "<<RayLaunchAngle<<" "<<IncidentAngleonIce<<" "<<RecievdAngleinIce<<endl;
-      aout<<ifileentry<<" "<<TxHeight<<" "<<IceLayerHeight<<" "<<TxHeight-IceLayerHeight<<" "<<TotalHorizontalDistance<<" "<<TotalHorizontalDistanceinIce<<" "<<RayLaunchAngle<<" "<<IncidentAngleonIce<<" "<<RecievdAngleinIce<<endl;
+      //cout<<ifileentry<<" "<<TxHeight<<" "<<IceLayerHeight<<" "<<TxHeight-IceLayerHeight<<" "<<TotalHorizontalDistance<<" "<<TotalHorizontalDistanceInIce<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
+      //aout<<ifileentry<<" "<<TxHeight<<" "<<IceLayerHeight<<" "<<TxHeight-IceLayerHeight<<" "<<TotalHorizontalDistance<<" "<<TotalHorizontalDistanceInIce<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
+      aout<<ifileentry<<" "<<TxHeight<<" "<<TotalHorizontalDistanceInAir + TotalHorizontalDistanceInIce<<" "<<TotalHorizontalDistanceInAir<<" "<<TotalHorizontalDistanceInIce<<" "<<(TimeInIce+TimeInAir)*MultiRayAirIceRefraction::spedc<<" "<<TimeInIce*MultiRayAirIceRefraction::spedc<<" "<<TimeInAir*MultiRayAirIceRefraction::spedc<<" "<<(TimeInIce+TimeInAir)*pow(10,9)<<" "<<TimeInIce*pow(10,9)<<" "<<TimeInAir*pow(10,9)<<" "<<RayLaunchAngleInAir<<" "<<IncidentAngleonIce<<" "<<RecievdAngleInIce<<endl;
 
       delete[] GetHitPar;
       layerAs.clear();
